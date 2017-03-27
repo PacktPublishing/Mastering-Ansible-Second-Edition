@@ -7,7 +7,7 @@ This book provides you with the knowledge you need to understand how Ansible 2.1
 
 ## Instructions and Navigation
 All of the code is organized into folders. The commands and instructions will look like the following:
-
+```
   --- 
 - name: play with a {{ var_name }} 
   hosts: localhost 
@@ -33,6 +33,7 @@ All of the code is organized into folders. The commands and instructions will lo
   - name: task with a {{ runtime_var_name }} 
     debug: 
     msg: "I am another mastery task"
+```
 
 ## Related products:
 * [Learning Ansible 2 - Second Edition](https://www.packtpub.com/networking-and-servers/learning-ansible-2-second-edition?utm_source=github&utm_medium=repository&utm_content=9781786464231)
