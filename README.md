@@ -8,10 +8,31 @@ This book provides you with the knowledge you need to understand how Ansible 2.1
 ## Instructions and Navigation
 All of the code is organized into folders. The commands and instructions will look like the following:
 
-   - name: get the operators name 
-  pause: 
-    prompt: "Please enter your name" 
-  register: opname
+  --- 
+- name: play with a {{ var_name }} 
+  hosts: localhost 
+  gather_facts: false 
+ 
+  vars: 
+ - var_name: not-mastery 
+ 
+  tasks: 
+  - name: set a variable 
+    set_fact: 
+    task_var_name: "defined variable" 
+ 
+  - name: task with a {{ task_var_name }} 
+    debug: 
+    msg: "I am mastery task" 
+ 
+  - name: second play with a {{ task_var_name }} 
+    hosts: localhost 
+    gather_facts: false 
+ 
+  tasks: 
+  - name: task with a {{ runtime_var_name }} 
+    debug: 
+    msg: "I am another mastery task"
 
 ## Related products:
 * [Learning Ansible 2 - Second Edition](https://www.packtpub.com/networking-and-servers/learning-ansible-2-second-edition?utm_source=github&utm_medium=repository&utm_content=9781786464231)
