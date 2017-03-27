@@ -1,0 +1,401 @@
+setting = {{ setting }} 
+{% if feature.enabled %} 
+feature = True 
+{% else %} 
+feature = False 
+{% endif %} 
+another_setting = {{ another_setting }} 
+
+
+
+
+--- 
+- name: demo the template 
+  hosts: localhost 
+  gather_facts: false  
+  vars: 
+    setting: a_val 
+    feature: 
+      enabled: true 
+    another_setting: b_val  
+  tasks: 
+    - name: pause with render 
+      pause: 
+        prompt: "{{ lookup('template', 'demo.j2') }}"
+
+
+
+API = cinder{{ 'v2' if api.v2 else '' }} 
+
+
+
+--- 
+- name: demo the template 
+  hosts: localhost 
+  gather_facts: false 
+     vars: 
+    api: 
+      v2: true  
+  tasks: 
+    - name: pause with render 
+      debug: 
+        msg: "API = cinder{{ 'v2' if api.v2 else '' }}"
+
+
+
+
+# data dirs 
+{% for dir in data_dirs %} 
+data_dir = {{ dir }} 
+{% endfor %}
+
+
+
+# data dirs 
+{% for dir in data_dirs %} 
+data_dir = {{ dir }} 
+{% else %} 
+# no data dirs found 
+{% endfor %} 
+
+
+
+--- 
+- name: demo the template 
+  hosts: localhost 
+  gather_facts: false  
+  vars: 
+    data_dirs: []  
+  tasks: 
+    - name: pause with render 
+      pause: 
+        prompt: "{{ lookup('template', 'demo.j2') }}"
+
+
+
+
+# data dirs 
+{% for dir in data_dirs %} 
+{% if dir != "/" %} 
+data_dir = {{ dir }} 
+{% endif %} 
+{% else %} 
+# no data dirs found 
+{% endfor %}
+
+
+
+# data dirs 
+{% for dir in data_dirs if dir != "/" %} 
+data_dir = {{ dir }} 
+{% else %} 
+# no data dirs found 
+{% endfor %} 
+
+
+
+# data dirs 
+{% for dir in data_dirs if dir != "/" %} 
+{% if loop.first %} 
+data_dir = {{ dir }}, 
+{% else %} 
+           {{ dir }}, 
+{% endif %} 
+{% else %} 
+# no data dirs found 
+{% endfor %}
+
+
+
+--- 
+- name: demo the template 
+  hosts: localhost 
+  gather_facts: false  
+  vars: 
+    data_dirs: ['/', '/foo', '/bar']  
+  tasks: 
+    - name: pause with render 
+      pause: 
+        prompt: "{{ lookup('template', 'demo.j2') }}" 
+
+
+
+
+# data dirs. 
+{% for dir in data_dirs if dir != "/" %} 
+{% if loop.first %} 
+data_dir = {{ dir }}{{ ',' if not loop.last else '' }} 
+{% else %} 
+           {{ dir }}{{ ',' if not loop.last else '' }} 
+{% endif %} 
+{% else %} 
+# no data dirs found 
+{% endfor %} 
+
+
+
+{% macro comma(loop) %} 
+{{ ',' if not loop.last else '' }} 
+{%- endmacro -%} 
+# data dirs. 
+{% for dir in data_dirs if dir != "/" %} 
+{% if loop.first %} 
+data_dir = {{ dir }}{{ comma(loop) }} 
+{% else %} 
+           {{ dir }}{{ comma(loop) }} 
+{% endif %} 
+{% else %} 
+# no data dirs found 
+{% endfor %} 
+
+
+{% macro test() %} 
+{{ test.name }} 
+{%- endmacro -%} 
+{{ test() }}
+
+
+
+{% macro test(var_a='a string') %} 
+{{ test.arguments }} 
+{%- endmacro -%} 
+{{ test() }}
+
+
+
+{% macro test(var_a='a string') %} 
+{{ test.arguments }} 
+{{ test.defaults }} 
+{%- endmacro -%} 
+{{ test() }} 
+
+
+
+
+{% macro test() %} 
+{{ kwargs }} 
+{{ test.catch_kwargs }} 
+{%- endmacro -%} 
+{{ test(unexpected='surprise') }}
+
+
+
+
+{% macro test() %} 
+{{ varargs }} 
+{{ test.catch_varargs }} 
+{%- endmacro -%} 
+{{ test('surprise') }} 
+
+
+
+{% macro test() %} 
+The text from the caller follows: 
+{{ caller() }} 
+{%- endmacro -%} 
+{% call test() %} 
+This is text inside the call 
+{% endcall %} 
+
+
+
+{% macro test(group, hosts) %} 
+[{{ group }}] 
+{% for host in hosts %} 
+{{ host }} {{ caller(host) }} 
+{%- endfor %} 
+{%- endmacro -%}  
+{% call(host) test('web', ['host1', 'host2', 'host3']) %} 
+ssh_host_name={{ host }}.example.name ansible_sudo=true 
+{% endcall %}  
+{% call(host) test('db', ['db1', 'db2']) %} 
+ssh_host_name={{ host }}.example.name 
+{% endcall %}
+
+
+
+{{ my_word | lower }} 
+
+
+
+{{ answers | replace('no', 'yes') }} 
+
+
+
+{{ answers | replace('no', 'yes') | lower }} 
+
+
+
+--- 
+- name: demo the template 
+  hosts: localhost 
+  gather_facts: false  
+  tasks: 
+    - name: debug the template 
+      debug: 
+        msg: "{{ answers | replace('no', 'yes') | lower }}" 
+
+
+
+
+{% if some_variable is defined %} 
+{{ some_variable }} 
+{% else %} 
+default_value 
+{% endif %} 
+{{ some_variable | default('default_value') }}
+
+
+
+max_threads: {{ play_hosts | count }}
+
+
+
+- name: backup the database 
+  shell: mysqldump -u root nova > /data/nova.backup.sql 
+  delegate_to: "{{ groups['db_servers'] | random }}" 
+  run_once: true
+
+
+
+{{ math_result | round | int }} 
+
+
+
+--- 
+- name: demo the filters 
+  hosts: localhost 
+  gather_facts: false  
+  tasks: 
+    - name: fail a task 
+      debug: 
+        msg: "I am not a change" 
+      register: derp  
+    - name: only do this on change 
+      debug: 
+        msg: "You had a change" 
+      when: derp | changed  
+    - name: only do this on success 
+      debug: 
+        msg: "You had a success" 
+      when: derp | success
+
+
+
+--- 
+- name: demo the filters 
+  hosts: localhost 
+  gather_facts: false  
+  tasks: 
+    - name: shuffle the cards 
+      debug: 
+        msg: "{{ ['Ace', 'Queen', 'King', 'Deuce'] | shuffle }}"
+
+
+
+--- 
+- name: demo the filters 
+  hosts: localhost 
+  gather_facts: false  
+  tasks: 
+    - name: demo basename 
+      debug: 
+        msg: "{{ '/var/log/nova/nova-api.log' | basename }}" 
+
+
+
+--- 
+- name: demo the filters 
+  hosts: localhost 
+  gather_facts: false  
+  tasks: 
+    - name: demo filter 
+      debug: 
+        msg: "{{ '~/.stackrc' | expanduser }}" 
+
+
+
+
+--- 
+- name: demo the filters 
+  hosts: localhost 
+  gather_facts: false  
+  tasks: 
+    - name: read file 
+      slurp: 
+        src: derp 
+      register: derp  
+    - name: display file content (undecoded) 
+      debug: 
+        var: derp.content  
+    - name: display file content (decoded) 
+      debug: 
+        var: derp.content | b64decode
+
+
+
+- name: check database version 
+  shell: neutron-manage current |grep juno 
+  register: neutron_db_ver 
+  failed_when: false  
+- name: upgrade db 
+  command: neutron-manage db_sync 
+  when: neutron_db_ver|failed
+
+
+
+- name: check database version 
+  command: neutron-manage current 
+  register: neutron_db_ver  
+- name: upgrade db 
+  command: neutron-manage db_sync 
+  when: not neutron_db_ver.stdout | search('juno')
+
+
+
+- name: install pips with versions 
+  pip: name={{ item.name }} version={{ item.ver }} 
+  with_items: pips 
+  when: item.ver is defined  
+- name: install pips without versions 
+  pip: name={{ item.name }} 
+  with_items: pips 
+  when: item.ver is undefined
+
+
+
+
+- name: install pips 
+  pip: name={{ item.name }} version={{ item.ver | default(omit) }} 
+  with_items: pips
+
+
+--- 
+- name: demo the filters 
+  hosts: localhost 
+  gather_facts: false 
+    
+  tasks: 
+    - name: string methods 
+      debug: 
+        msg: "{{ 'foo bar baz'.upper().split() }}" 
+
+
+--- 
+- name: demo the logic 
+  hosts: localhost 
+  gather_facts: false  
+  vars: 
+    num1: 10 
+    num3: 10  
+  tasks: 
+    - name: logic and comparison 
+      debug: 
+        msg: "Can you read me?" 
+      when: num1 >= num3 and num1 is even and num2 is not defined 
+
+
+
+
+
+

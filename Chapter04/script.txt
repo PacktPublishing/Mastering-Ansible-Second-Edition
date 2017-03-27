@@ -1,0 +1,175 @@
+-name: broken website
+  uri: 
+    url: http://notahost.nodomain
+
+
+- name: broken website 
+  uri: 
+    url: http://notahost.nodomain 
+  ignore_errors: true 
+
+
+
+- name: query sessions 
+  command: /sbin/iscsiadm -m session 
+  register: sessions 
+
+
+- name: query sessions 
+  command: /sbin/iscsiadm -m session 
+  register: sessions 
+  failed_when: sessions.rc not in (0, 21) 
+
+
+- name: delete branch bad 
+  command: git branch -D badfeature 
+  args: 
+    chdir: /srv/app
+
+
+- name: check if branch badfeature exists 
+  command: git branch 
+  args: 
+    chdir: /srv/app 
+  register: branches  
+- name: delete branch bad 
+  command: git branch -D badfeature 
+  args: 
+    chdir: /srv/app 
+  when: branches.stdout | search('badfeature')
+
+
+
+
+- name: delete branch bad 
+  command: git branch -D badfeature 
+  args: 
+    chdir: /srv/app 
+  register: gitout 
+  failed_when:     
+ - gitout.rc != 0    
+ - not gitout.stderr | search('branch.*not found') 
+
+
+- name: delete branch bad 
+  command: git branch -D badfeature 
+  args: 
+    chdir: /srv/app 
+  register: gitout 
+  failed_when:     
+- gitout.rc != 0     
+- not gitout.stderr | search('branch.*not found') 
+  changed_when: gitout.rc == 0
+
+
+#!/bin/bash 
+rm -rf /srv/whiskey/tango 
+mkdir /srv/whiskey/tango
+
+
+- name: discover tango directory 
+  stat: path=/srv/whiskey/tango 
+  register: tango  
+- name: run frobitz 
+  script: files/frobitz --initialize /srv/whiskey/tango 
+  when: not tango.stat.exists 
+
+
+
+- name: run frobitz 
+  script: files/frobitz creates=/srv/whiskey/tango
+
+
+- name: discover iscsi sessions 
+  command: /sbin/iscsiadm -m session 
+  register: sessions 
+  failed_when:     
+- sessions.rc != 0     
+- not sessions.stderr | 
+  search('No active sessions') 
+  changed_when: false 
+
+
+--- 
+- name: error handling 
+  hosts: localhost 
+  gather_facts: false 
+ 
+  tasks: 
+    - block: 
+        - name: delete branch bad 
+          command: git branch -D badfeature 
+          args: 
+            chdir: /srv/app 
+ 
+        - name: this task is lost 
+          debug: 
+            msg: "I do not get seen" 
+ 
+      rescue: 
+        - name: cleanup task 
+          debug:            msg: "I am cleaning up" 
+ 
+        - name: cleanup task 2 
+          debug: 
+            msg: "I am also cleaning up"  
+    - name: task after block 
+      debug: 
+        msg: "Execution goes on" 
+
+
+
+
+always: 
+  - name: most important task 
+    debug: 
+      msg: "Never going to let you down" 
+
+
+
+--- 
+- name: error handling 
+  hosts: localhost 
+  gather_facts: false 
+ 
+  tasks: 
+    - block: 
+        - name: delete branch bad 
+          command: git branch -D badfeature 
+          args: 
+            chdir: /srv/app 
+          register: gitout 
+          failed_when: 
+            - gitout.rc != 0 
+            - not gitout.stderr | search('branch.*not found') 
+ 
+        - name: this task is lost 
+          debug: 
+            msg: "I do not get seen" 
+ 
+      rescue: 
+        - name: cleanup task 
+          debug: 
+            msg: "I am cleaning up" 
+ 
+        - name: cleanup task 2 
+          debug: 
+            msg: "I am also cleaning up" 
+ 
+      always: 
+        - name: most important task 
+          debug: 
+            msg: "Never going to let you down" 
+ 
+    - name: task after block 
+      debug: 
+        msg: "Execution goes on" 
+
+
+
+
+ 
+
+
+
+

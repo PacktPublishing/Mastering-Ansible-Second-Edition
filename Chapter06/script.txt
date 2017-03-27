@@ -1,0 +1,308 @@
+--- 
+- name: Upgrade foo-app in place 
+  hosts: foo-app 
+  serial: 2 
+
+
+tasks: 
+    - name: disable member in balancer 
+      haproxy: 
+        backend: foo-app 
+        host: "{{ inventory_hostname }}" 
+        state: disabled 
+      delegate_to: foo-lb 
+
+ - name: pull stable foo-app 
+      git: 
+        repo: "{{ foo-app.repo }}" 
+        dest: /srv/foo-app/ 
+        version: "{{ foo-version }}" 
+      notify: 
+        - reload nginx 
+
+
+- meta: flush_handlers 
+
+
+
+- name: ensure healthy service 
+      wait_for: 
+        port: 80 
+
+
+
+- name: enable member in balancer 
+      haproxy: 
+        backend: foo-app 
+        host: "{{ inventory_hostname }}" 
+        state: enabled 
+      delegate_to: foo-lb 
+
+
+
+handlers: 
+    - name: reload nginx 
+      service: 
+        name: nginx 
+        state: restarted 
+
+
+--- 
+- name: Create new foo servers 
+  hosts: localhost 
+ 
+  tasks: 
+    - name: launch instances 
+      os_server: 
+        name: foo-appv{{ version }}-{{ item }} 
+        image: foo-appv{{ version }} 
+        flavor: 4 
+        key_name: ansible-prod 
+        security_groups: foo-app 
+        auto_floating_ip: false 
+        state: present 
+        auth: 
+          auth_url: https://me.openstack.blueboxgrid.com:5001/v2.0 
+          username: jlk 
+          password: FAKEPASSW0RD 
+          project_name: mastery 
+      register: launch 
+      with_sequence: count=8 
+
+
+
+- name: add hosts 
+      add_host: 
+        name: "{{ item.openstack.name }}" 
+        ansible_ssh_host: "{{ item.openstack.private_v4 }}" 
+        groups: new-foo-app 
+      with_items: launch.results
+
+
+- name: Ensure new app 
+  hosts: new-foo-app 
+  tasks: 
+    - name: ensure healthy service 
+      wait_for: 
+        port: 80 
+
+
+- name: Configure load balancer 
+  hosts: foo-lb 
+  tasks: 
+    - name: haproxy config 
+      template: 
+        dest: /etc/haproxy/haproxy.cfg 
+        src: templates/etc/haproxy/haproxy.cfg 
+ 
+    - name: reload haproxy 
+      service: 
+        name: haproxy 
+        state: reloaded 
+
+
+[failtest] 
+failer[01:10] 
+
+
+
+--- 
+- name: any errors fatal 
+  hosts: failtest 
+  gather_facts: false 
+  any_errors_fatal: true 
+
+
+
+tasks: 
+    - name: fail last host 
+      fail: 
+        msg: "I am last" 
+      when: inventory_hostname == play_hosts[-1]  
+    - name: never ran 
+      debug: 
+        msg: "I should never be ran" 
+      when: inventory_hostname == play_hosts[-1] 
+
+
+--- 
+- name: any errors fatal 
+  hosts: failtest 
+  gather_facts: false 
+  max_fail_percentage: 20
+
+
+ - name: fail last host 
+      fail: 
+        msg: "I am last" 
+      when: inventory_hostname in play_hosts[0:3] 
+
+
+
+--- 
+- name: any errors fatal 
+  hosts: failtest 
+  gather_facts: false 
+     tasks:     - name: run first 
+      debug: 
+        msg: "I am a change" 
+      changed_when: true 
+      when: inventory_hostname == play_hosts[-1] 
+      notify: critical handler  
+    - name: change a host 
+      fail: 
+        msg: "I am last" 
+      when: inventory_hostname == play_hosts[-1] 
+
+
+
+- name: never ran 
+      debug: 
+        msg: "I should never be ran" 
+      when: inventory_hostname == play_hosts[-1]  
+     handlers: 
+    - name: critical handler 
+      debug: 
+        msg: "I really need to run"
+
+
+
+
+
+--- 
+- name: any errors fatal 
+  hosts: failtest 
+  gather_facts: false 
+  max_fail_percentage: 0 
+  force_handlers: true 
+
+
+
+roles/microA 
++-- handlers 
+¦   +-- main.yaml 
++-- tasks 
+    +-- main.yaml 
+roles/microB 
++-- handlers 
+¦   +-- main.yaml 
++-- tasks 
+    +-- main.yaml 
+
+
+
+roles/microA/tasks/main.yaml: 
+--- 
+- name: install microA package 
+  debug: 
+    msg: "This is installing A" 
+  changed_when: true 
+  notify: restart microA 
+roles/microB/tasks/main.yaml: 
+--- 
+- name: install microB package 
+  debug: 
+    msg: "This is installing B" 
+  changed_when: true 
+  notify: restart microB 
+
+
+
+roles/microA/handlers/main.yaml: 
+--- 
+- name: restart microA 
+  debug: 
+    msg: "microA is restarting" 
+  when: not upgrade | default(false) | bool 
+roles/microB/handlers/main.yaml: 
+---    
+- name: restart microB 
+  debug: 
+    msg: "microB is restarting" 
+  when: not upgrade | default(false) | bool
+
+
+
+micro.yaml: 
+--- 
+- name: apply microA 
+  hosts: localhost 
+  gather_facts: false 
+ 
+  roles: 
+    - role: microA 
+ 
+- name: apply microB 
+  hosts: localhost 
+  gather_facts: false 
+ 
+  roles: 
+    - role: microB 
+ 
+- name: restart microA 
+  hosts: localhost 
+  gather_facts: false 
+ 
+  tasks: 
+    - name: restart microA for upgrade 
+      debug: 
+        msg: "microA is restarting" 
+      when: upgrade | default(false) | bool 
+ 
+- name: restart microB 
+  hosts: localhost 
+  gather_facts: false 
+ 
+  tasks: 
+    - name: restart microB for upgrade 
+      debug: 
+        msg: "microB is restarting" 
+      when: upgrade | default(false) |bool 
+
+
+--- 
+- name: run once test 
+  hosts: failtest[0:1] 
+  gather_facts: false 
+ 
+  tasks: 
+    - name: do a thing 
+      debug: 
+        msg: "I am groot" 
+      register: groot 
+      run_once: true 
+ 
+    - name: what is groot 
+      debug: 
+        var: groot 
+      when: inventory_hostname == play_hosts[-1] 
+
+
+--- 
+- name: parallel and serial 
+  hosts: failtest[0:3] 
+  gather_facts: false 
+ 
+  tasks: 
+    - name: do a thing 
+      debug: 
+        msg: "I am groot" 
+      changed_when: inventory_hostname in play_hosts[0:2] 
+      register: groot 
+      notify: restart groot 
+ 
+  handlers: 
+    - name: restart groot 
+      debug: 
+        msg: "I am groot?" 
+      with_items: "{{ play_hosts }}" 
+      delegate_to: "{{ item }}" 
+      run_once: true 
+      when: hostvars[item]['groot']['changed'] | bool 
+      loop_control: 
+        pause: 2 
+
+
+
+
+

@@ -1,0 +1,305 @@
+#!/usr/bin/python 
+# 
+
+
+import shutil 
+
+def main(): 
+    module = AnsibleModule( 
+        argument_spec = dict( 
+            source=dict(required=True, type='str'), 
+            dest=dict(required=True, type='str') 
+        ) 
+    ) 
+
+ shutil.copy(module.params['source'], 
+                module.params['dest'])
+
+
+ module.exit_json(changed=True)
+
+
+from ansible.module_utils.basic import *
+
+
+if __name__ == '__main__': 
+    main()
+
+
+--- 
+- name: test remote_copy module 
+  hosts: localhost 
+  gather_facts: false 
+ 
+  tasks: 
+    - name: ensure foo 
+      file: 
+        path: /tmp/foo 
+        state: touch 
+ 
+    - name: do a remote copy 
+      remote_copy: 
+        source: /tmp/foo 
+        dest: /tmp/bar 
+
+
+
+
+import shutil 
+ 
+DOCUMENTATION = ''' 
+--- 
+module: remote_copy 
+version_added: future 
+short_description: Copy a file on the remote host 
+description: 
+  - The remote_copy module copies a file on the remote host from a given source to a provided destination. 
+options: 
+  source: 
+    description: 
+      - Path to a file on the source file on the remote host 
+    required: True 
+  dest: 
+    description: 
+      - Path to the destination on the remote host for the copy 
+    required: True 
+author: 
+  - Jesse Keating 
+''' 
+
+
+
+EXAMPLES = ''' 
+# Example from Ansible Playbooks 
+- name: backup a config file 
+  remote_copy: 
+    source: /etc/herp/derp.conf 
+    dest: /root/herp-derp.conf.bak 
+''' 
+
+
+ module.exit_json(changed=True, source=module.params['source'], 
+                     dest=module.params['dest']) 
+
+
+RETURN = ''' 
+source: 
+  description: source file used for the copy 
+  returned: success 
+  type: string 
+  sample: "/path/to/file.name" 
+dest: 
+  description: destination of the copy 
+  returned: success 
+  type: string 
+  sample: "/path/to/destination.file" 
+gid: 
+  description: group ID of destination target 
+  returned: success 
+  type: int 
+  sample: 502 
+group: 
+  description: group name of destination target 
+  returned: success 
+  type: string 
+  sample: "users" 
+uid: 
+  description: owner ID of destination target 
+  returned: success 
+  type: int 
+  sample: 502 
+owner: 
+  description: owner name of destination target 
+  returned: success 
+  type: string 
+  sample: "fred" 
+mode: 
+  description: permissions of the destination target 
+  returned: success 
+  type: int 
+  sample: 0644 
+size: 
+  description: size of destination target 
+  returned: success 
+  type: int 
+  sample: 20 
+state: 
+  description: state of destination target 
+  returned: success 
+  type: string 
+  sample: "file" 
+''' 
+
+
+
+
+facts = {'rc_source': module.params['source'], 
+             'rc_dest': module.params['dest']} 
+ 
+    module.exit_json(changed=True, ansible_facts=facts) 
+
+
+
+ - name: show a fact 
+      debug: 
+        var: rc_dest 
+
+
+
+- name: do a remote copy 
+      remote_copy: 
+        source: /tmp/foo 
+        dest: /tmp/bar 
+      register: mycopy 
+ 
+    - name: set facts from mycopy 
+      set_fact: 
+        rc_dest: "{{ mycopy.dest }}" 
+
+
+ module = AnsibleModule( 
+        argument_spec = dict( 
+            source=dict(required=True, type='str'), 
+            dest=dict(required=True, type='str') 
+        ), 
+        supports_check_mode=True 
+    ) 
+
+
+
+ if not module.check_mode: 
+        shutil.copy(module.params['source'], 
+                    module.params['dest']) 
+
+
+
+def cloud_truth(a): 
+    return a.replace("the cloud", "somebody else's computer") 
+
+
+class FilterModule(object): 
+    '''Cloud truth filters''' 
+    def filters(self): 
+        return {'cloud_truth': cloud_truth} 
+
+
+
+--- 
+- name: test cloud_truth filter 
+  hosts: localhost 
+  gather_facts: false 
+  vars: 
+    statement: "I store my files in the cloud" 
+  tasks: 
+    - name: make a statement 
+      debug: 
+        msg: "{{ statement | cloud_truth }}" 
+
+
+
+from ansible.plugins.callback import default 
+ class CallbackModule(default.CallbackModule):     
+ CALLBACK_VERSION = 2.0     
+ CALLBACK_TYPE = 'stdout'     
+ CALLBACK_NAME = 'shrug'  
+    def v2_on_any(self, *args, **kwargs): 
+        msg = '\xc2\xaf\\_(\xe3\x83\x84)_/\xc2\xaf' 
+              self._display.display(msg.decode('utf-8') * 8) 
+
+
+
+[defaults] 
+stdout_callback = shrug
+
+
+
+#!/usr/bin/env python 
+# 
+
+
+import json 
+import argparse
+
+
+inventory = {} 
+inventory['web'] = {'hosts': ['mastery.example.name'], 
+                    'vars': {'http_port': 80, 
+                             'proxy_timeout': 5}} 
+inventory['dns'] = {'hosts': ['backend.example.name']} 
+inventory['database'] = {'hosts': ['backend.example.name'], 
+                         'vars': {'ansible_ssh_user': 'database'}} 
+inventory['frontend'] = {'children': ['web']} 
+inventory['backend'] = {'children': ['dns', 'database'], 
+                        'vars': {'ansible_ssh_user': 'blotto'}} 
+inventory['errors'] = {'hosts': ['scsihost']} 
+inventory['failtest'] = {'hosts': ["failer%02d" % n for n in 
+                                   range(1,11)]} 
+
+
+
+allgroupvars = {'ansible_ssh_user': 'otto'}
+
+
+
+hostvars = {} 
+hostvars['web'] = {'ansible_ssh_host': '192.168.10.25'} 
+hostvars['scsihost'] = {'ansible_ssh_user': 'jkeating'} 
+
+
+parser = argparse.ArgumentParser(description='Simple Inventory') 
+parser.add_argument('--list', action='store_true', 
+                    help='List all hosts') 
+parser.add_argument('--host', help='List details of a host') 
+args = parser.parse_args() 
+
+
+
+if args.list: 
+    for group in inventory: 
+        ag = allgroupvars.copy() 
+        ag.update(inventory[group].get('vars', {})) 
+        inventory[group]['vars'] = ag 
+    print(json.dumps(inventory)) 
+
+
+elif args.host: 
+    print(json.dumps(hostvars.get(args.host, {}))) 
+
+
+--- 
+- name: test the inventory 
+  hosts: all 
+  gather_facts: false 
+ 
+  tasks: 
+    - name: hello world 
+      debug: 
+        msg: "Hello world, I am {{ inventory_hostname }}. 
+              My username is {{ ansible_ssh_user }}"
+
+
+
+
+hostvars['scsihost'] = {'ansible_ssh_user': 'jkeating'} 
+ 
+inventory['_meta'] = {'hostvars': hostvars} 
+ 
+parser = argparse.ArgumentParser(description='Simple Inventory') 
+Next we'll change the --host handling to raise an exception: 
+elif args.host: 
+    raise StandardError("You've been a bad boy")
+
+
+
+
+$ source ./hacking/env-setup
+
+
+$ test/runner/ansible-test integration -v posix/ci/
+
+
+
+
+
+
+

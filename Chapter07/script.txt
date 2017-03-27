@@ -1,0 +1,128 @@
+--- 
+- name: variable introspection demo 
+  hosts: localhost 
+  gather_facts: false 
+ 
+  tasks: 
+    - name: do a thing 
+      uri: 
+        url: https://derpops.bike 
+      register: derpops 
+ 
+    - name: show derpops 
+      debug: 
+        msg: "derpops value is {{ derpops }}" 
+
+
+
+
+--- 
+- name: variable introspection demo 
+  hosts: localhost 
+  gather_facts: false 
+ 
+  tasks: 
+    - name: do a thing 
+      uri: 
+        url: https://derpops.bike 
+      register: derpops 
+ 
+    - name: show derpops 
+      debug: 
+        var: derpops.server
+
+
+
+--- 
+- name: variable introspection demo 
+  hosts: localhost 
+ 
+  tasks: 
+    - name: show a complex hash 
+      debug: 
+        var: ansible_default_ipv4
+
+
+
+--- 
+- name: variable introspection demo 
+  hosts: localhost 
+ 
+  tasks: 
+    - name: show a complex hash 
+      debug: 
+        var: ansible_default_ipv4.flags[-1]
+
+
+
+{{ derp['herp'] }}
+
+
+
+{{ derp.herp }}
+
+
+
+
+--- 
+- name: sub-element access styles 
+  hosts: localhost 
+  gather_facts: false 
+  vars: 
+    - derp: 
+        keys: 
+          - c 
+          - d 
+  tasks: 
+    - name: subscript style 
+      debug: 
+        var: derp['keys']  
+    - name: dot notation style 
+      debug: 
+        var: derp.keys
+
+
+
+--- 
+- name: sub-element access styles 
+  hosts: localhost 
+  gather_facts: false 
+  strategy: debug 
+ 
+  vars: 
+    - derp: 
+        keys: 
+          - c 
+          - d 
+ 
+  tasks: 
+    - name: subscript style 
+      debug: 
+        var: derp['keys'] 
+ 
+    - name: failing task 
+      debug: 
+        msg: "this is {{ derp['missing'] }}" 
+ 
+    - name: final task 
+      debug: 
+        msg: "my only friend the end" 
+
+
+
+
+--- 
+- name: remote code debug 
+  hosts: debug.example.com 
+  gather_facts: false 
+ 
+  tasks: 
+    - name: a remote module execution 
+      systemd: 
+        name: dnsmasq 
+        state: stopped 
+        enabled: no 
+
+
+
+

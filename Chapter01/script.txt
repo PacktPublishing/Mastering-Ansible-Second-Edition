@@ -1,0 +1,290 @@
+mastery.example.name 
+
+
+
+[web] 
+mastery.example.name 
+ 
+[dns] 
+backend.example.name 
+ 
+[database] 
+backend.example.name 
+ 
+[frontend:children] 
+web 
+ 
+[backend:children] 
+dns 
+database 
+
+
+
+
+[web] 
+mastery.example.name ansible_host=192.168.10.25 
+ 
+[dns] 
+backend.example.name 
+ 
+[database] 
+backend.example.name 
+ 
+[frontend:children] 
+web 
+ 
+[backend:children] 
+dns 
+database 
+ 
+[web:vars] 
+http_port=88 
+proxy_timeout=5 
+ 
+[backend:vars] 
+ansible_port=314 
+ 
+[all:vars] 
+ansible_ssh_user=otto 
+
+
+
+- name: add new node into runtime inventory 
+  add_host: 
+    name: newmastery.example.name 
+    groups: web 
+    ansible_host: 192.168.10.30
+
+
+--- 
+- name: limit example play 
+  hosts: all 
+  gather_facts: false 
+ 
+  tasks: 
+    - name: tell us which host we are on 
+      debug: 
+        var: inventory_hostname 
+
+
+
+--- 
+- name: limit example play 
+  hosts: all 
+  gather_facts: false 
+ 
+  tasks: 
+    - name: tell us which host we are on 
+      debug: 
+        var: inventory_hostname 
+ 
+    - name: grab variable data from backend 
+      debug: 
+        var: hostvars['backend.example.name']['ansible_port'] 
+
+
+
+
+--- 
+- hosts: localhost 
+  gather_facts: false 
+ 
+  vars: 
+    - a_var: derp 
+ 
+  pre_tasks: 
+    - name: pretask 
+      debug: 
+        msg: "a pre task" 
+      changed_when: true 
+      notify: say hi 
+ 
+  roles: 
+    - role: simple 
+      derp: newval 
+ 
+  tasks: 
+    - name: task 
+      debug: 
+        msg: "a task" 
+      changed_when: true 
+      notify: say hi 
+ 
+  post_tasks: 
+    - name: posttask 
+      debug: 
+        msg: "a post task" 
+      changed_when: true 
+      notify: say hi 
+
+
+
+
+- meta: flush_handlers 
+
+
+
+. 
++-- a_vars_file.yaml 
++-- mastery-hosts 
++-- relative.yaml 
++-- tasks 
+    +-- a.yaml 
+    +-- b.yaml
+
+
+
+
+--- 
+something: "better than nothing" 
+
+
+
+
+--- 
+- name: relative path play 
+  hosts: localhost 
+  gather_facts: false 
+ 
+  vars_files: 
+    - a_vars_file.yaml 
+ 
+  tasks: 
+    - name: who am I 
+      debug: 
+        msg: "I am mastery task" 
+ 
+    - name: var from file 
+      debug:         var: something 
+ 
+    - include: tasks/a.yaml
+
+
+
+--- 
+- name: where am I 
+  debug: 
+    msg: "I am task a" 
+ 
+- include: b.yaml 
+
+
+
+--- 
+- name: who am I 
+  debug: 
+    msg: "I am task b"
+
+
+
+hostname:groupname:*.example:~(web|db)\.example\.com 
+
+
+
+Webservers[0]:webservers[2:4] 
+
+
+
+Webservers:&dbservers 
+Webservers:!dbservers
+
+
+
+--- 
+- name: play with a {{ var_name }} 
+  hosts: localhost 
+  gather_facts: false 
+ 
+  vars: 
+  - var_name: not-mastery 
+ 
+  tasks: 
+  - name: set a variable 
+    set_fact: 
+    task_var_name: "defined variable" 
+ 
+  - name: task with a {{ task_var_name }} 
+    debug: 
+    msg: "I am mastery task" 
+ 
+  - name: second play with a {{ task_var_name }} 
+    hosts: localhost 
+    gather_facts: false 
+ 
+  tasks: 
+  - name: task with a {{ runtime_var_name }} 
+    debug: 
+    msg: "I am another mastery task"
+
+
+
+
+- name: add a keypair to nova 
+  os_keypair: 
+  cloud={{ cloud_name }} 
+  name=admin-key 
+  wait=yes 
+ 
+- name: add a keypair to nova 
+  os_keypair:     
+  cloud: "{{ cloud_name }}"     
+  name: admin-key     
+  wait: yes 
+
+
+
+
+[ssh_connection] 
+pipelining=true 
+
+
+
+- name: get the operators name 
+  pause: 
+    prompt: "Please enter your name" 
+  register: opname
+
+
+--extra-vars "foo=bar owner=fred" 
+--extra-vars '{"services":["nova-api","nova-conductor"]}' 
+--extra-vars @/path/to/data.yaml 
+
+lookup('<plugin_name>', 'plugin_argument') 
+
+
+
+- name: show data from etcd 
+  debug:     
+  msg: "{{ lookup('etcd', 'mastery') }}"
+
+
+
+hash_var: 
+  fred: 
+    home: Seattle 
+    transport: Bicycle 
+
+
+
+hash_var: 
+  fred: 
+    transport: Bus 
+
+
+
+
+hash_var: 
+  fred: 
+    transport: Bus 
+
+
+
+
+hash_var: 
+  fred: 
+    home: Seattle 
+    transport: Bus
+
+
+
+

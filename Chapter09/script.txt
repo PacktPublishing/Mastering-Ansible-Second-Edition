@@ -1,0 +1,204 @@
+---
+- name: boot server
+  hosts: localhost
+  gather_facts: false
+
+
+  tasks:
+    - name: boot the server
+      os_server:
+        auth:
+          auth_url: "CLOUDURL"
+          username: "jlk"
+          password: "PASSWORD"
+          project_name: "jlk"
+        flavor: "1"
+        image: "Fedora 25"
+        key_name: "jlk"
+        network: "internal"
+        name: "mastery1"
+
+
+  tasks:
+    - name: boot the server
+      os_server:
+        auth:
+          auth_url: "CLOUDURL"
+          username: "jlk"
+          password: "PASSWORD"
+          project_name: "jlk"
+        flavor: "1"
+        image: "Fedora 25"
+        key_name: "jlk"
+        network: "internal"
+        name: "mastery1"
+      register: newserver
+
+    - name: show floating ip
+      debug:
+        var: newserver.openstack.accessIPv4
+
+
+
+
+- name: add new server
+      add_host:
+        name: "mastery1"
+        ansible_ssh_host: "{{ newserver.openstack.accessIPv4 }}"
+        ansible_ssh_user: "fedora"
+
+
+
+- name: configure server
+  hosts: mastery1
+  gather_facts: false
+
+  tasks:
+    - name: install python
+      raw: "sudo dnf install -y python python2-dnf"
+
+
+
+
+    - name: install imagemagick
+      dnf:
+        name: "ImageMagick"
+      become: "yes"
+
+
+
+
+---
+- name: configure server
+  hosts: mastery1
+  gather_facts: false
+  remote_user: fedora
+
+  tasks:
+    - name: install python
+      raw: "sudo dnf install -y python python2-dnf"
+
+    - name: install imagemagick
+      dnf:
+        name: "ImageMagick"
+      become: "yes"
+
+
+
+
+FROM docker.io/fedora:25
+
+RUN dnf install -y cowsay nginx
+RUN "daemon off;" >> /etc/nginx/nginx.conf
+RUN cowsay boop > /usr/share/nginx/html/index.html
+
+EXPOSE 80
+
+CMD /usr/sbin/nginx
+
+
+
+---
+- name: build an image
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: build that image
+      docker_image:
+        path: .
+        state: present
+        name: fedora-moo
+
+    - name: start the container
+      docker_container:
+        name: playbook-container
+        image: fedora-moo
+        ports: 8080:80
+        state: started
+
+
+
+
+---
+- name: build an image
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: start the container
+      docker_container:
+        name: playbook-container
+        image: docker.io/fedora:25
+        ports: 8080:80
+        state: started
+        command: sleep 500
+
+    - name: make a host
+      add_host:
+        name: playbook-container
+        ansible_connection: docker
+
+- name: do things
+  hosts: playbook-container
+  gather_facts: false
+
+  tasks:
+    - name: install things
+      raw: dnf install -y python-dnf
+
+    - name: install things
+      dnf:
+        name: "{{ item }}"
+      with_items:
+        - nginx
+        - cowsay
+
+    - name: configure nginx
+      lineinfile:
+        line: "daemon off;"
+        dest: /etc/nginx/nginx.conf
+
+    - name: boop
+      shell: cowsay boop > /usr/share/nginx/html/index.html
+
+    - name: run nginx
+      shell: nginx &
+
+
+version: "1"
+services:
+  cowsay:
+    image: docker.io/fedora:25
+    ports:
+      - "8081:80"
+    command: ['nginx']
+
+
+
+
+---
+- hosts: cowsay
+  gather_facts: false
+
+  tasks:
+    - name: install things
+      raw: dnf install -y python-dnf
+
+    - name: install things
+      dnf:
+        name: "{{ item }}"
+      with_items:
+        - nginx
+        - cowsay
+
+    - name: configure nginx
+      lineinfile:
+        line: "daemon off;"
+        dest: /etc/nginx/nginx.conf
+
+    - name: boop
+      shell: cowsay boop > /usr/share/nginx/html/index.html
+
+
+
