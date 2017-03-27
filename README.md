@@ -9,7 +9,7 @@ This book provides you with the knowledge you need to understand how Ansible 2.1
 All of the code is organized into folders. The commands and instructions will look like the following:
 ```
   --- 
-- name: play with a {{ var_name }} 
+ - name: play with a {{ var_name }} 
   hosts: localhost 
   gather_facts: false 
  
