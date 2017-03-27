@@ -8,37 +8,10 @@ This book provides you with the knowledge you need to understand how Ansible 2.1
 ## Instructions and Navigation
 All of the code is organized into folders. The commands and instructions will look like the following:
 
-    --- 
-  - hosts: localhost 
-    gather_facts: false 
- 
-  vars: 
- - a_var: derp 
- 
-  pre_tasks: 
-  - name: pretask 
-      debug: 
-       msg: "a pre task" 
-      changed_when: true 
-      notify: say hi 
- 
-  roles: 
-   - role: simple 
-      derp: newval 
- 
-  tasks: 
-    - name: task 
-      debug: 
-        msg: "a task" 
-      changed_when: true 
-      notify: say hi 
- 
-  post_tasks: 
-    - name: posttask 
-      debug: 
-        msg: "a post task" 
-      changed_when: true 
-      notify: say hi
+   - name: get the operators name 
+  pause: 
+    prompt: "Please enter your name" 
+  register: opname
 
 ## Related products:
 * [Learning Ansible 2 - Second Edition](https://www.packtpub.com/networking-and-servers/learning-ansible-2-second-edition?utm_source=github&utm_medium=repository&utm_content=9781786464231)
